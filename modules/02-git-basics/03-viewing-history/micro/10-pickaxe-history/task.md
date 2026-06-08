@@ -1,0 +1,11 @@
+# Task — 10-pickaxe-history
+
+Use the prepared repository fixture. Do not mutate history unless the task explicitly asks for it.
+
+Run the primary command family:
+
+```bash
+git log -S<string>
+```
+
+Write the requested answer values into `.answers/` files as specified by the verifier.
