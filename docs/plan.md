@@ -27,7 +27,7 @@ gitfacts adapter, later Rust + gix
   └─ observes repo state/object/ref/index/history facts
        ↓
 normalized datoms
-  └─ [{ entity, attr, value, source, phase }]
+  └─ { schema, kata, phase, datoms: [{ e, a, v, source }] }
        ↓
 semagrams / patchplan
   ├─ imports facts
@@ -53,7 +53,7 @@ package learning
 	layer: "cue" | "git" | "rust" | "gitoxide" | "semagrams"
 	inputs: [...string]
 	outputs: [...string]
-	exitGate: [...string]
+	exitGate: [_, ...string]
 	dependsOn?: [...string]
 }
 
@@ -63,18 +63,46 @@ package learning
 	output: string
 	authority: "none" | "cue"
 }
+
+#Plan: {
+	units: [...#LearningUnit]
+	adapters: [...#AdapterContract]
+
+	// Keep the first contract useful: dependencies point at declared units,
+	// and every unit has a concrete exit gate.
+	_declared: close({
+		for _, u in units {
+			"\(u.id)": true
+		}
+	})
+	for _, u in units {
+		if u.dependsOn != _|_ {
+			for _, d in u.dependsOn {
+				_declared: "\(d)": true
+			}
+		}
+	}
+}
 ```
 
-Use this to declare:
+Use this to declare a concrete `plan` value:
 
-```text
-cue.schema-basics
-git.object-model
-git.index-worktree-head
-rust.serde-cli
-gitoxide.repo-observe
-semagrams.datom-import
-semagrams.acceptance-report
+```cue
+plan: #Plan & {
+	units: [
+		{id: "cue.schema-basics", layer: "cue", inputs: [], outputs: ["learning/plan.cue"], exitGate: ["cue export ./learning -e plan"]},
+		{id: "git.object-model", layer: "git", inputs: ["cue.schema-basics"], outputs: ["object micro-katas"], exitGate: ["one object invariant emits datoms"], dependsOn: ["cue.schema-basics"]},
+		{id: "git.index-worktree-head", layer: "git", inputs: ["git.object-model"], outputs: ["state micro-katas"], exitGate: ["one index/worktree/HEAD invariant emits datoms"], dependsOn: ["git.object-model"]},
+		{id: "rust.serde-cli", layer: "rust", inputs: ["git.index-worktree-head"], outputs: ["gitfacts JSON CLI"], exitGate: ["cargo test"], dependsOn: ["git.index-worktree-head"]},
+		{id: "gitoxide.repo-observe", layer: "gitoxide", inputs: ["rust.serde-cli"], outputs: ["gix-backed datoms"], exitGate: ["normalized gix datoms equal normalized shell datoms"], dependsOn: ["rust.serde-cli"]},
+		{id: "semagrams.datom-import", layer: "semagrams", inputs: ["gitoxide.repo-observe"], outputs: ["graph/report facts"], exitGate: ["CUE imports Git datoms"], dependsOn: ["gitoxide.repo-observe"]},
+		{id: "semagrams.acceptance-report", layer: "semagrams", inputs: ["semagrams.datom-import"], outputs: ["accept/reject report"], exitGate: ["good candidate accepted and bad candidate rejected"], dependsOn: ["semagrams.datom-import"]},
+	]
+	adapters: [
+		{name: "gitfacts-cli", input: "repo path", output: "gitfacts.datoms.v1", authority: "cue"},
+		{name: "gitfacts-gix", input: "repo path", output: "gitfacts.datoms.v1", authority: "cue"},
+	]
+}
 ```
 
 **Exit gate:**
@@ -134,13 +162,18 @@ Every kata should eventually emit:
 
 ```json
 {
+  "schema": "gitfacts.datoms.v1",
   "kata": "02.03.object.commit-parent",
-  "facts": [
+  "phase": "fixture",
+  "datoms": [
     {
-      "entity": "commit:HEAD",
-      "attr": "git.parent",
-      "value": "commit:<oid>",
-      "source": "git cat-file -p HEAD"
+      "e": "commit:<head-oid>",
+      "a": "git.commit.parent",
+      "v": "commit:<parent-oid>",
+      "source": {
+        "adapter": "git-cli",
+        "command": "git cat-file -p HEAD"
+      }
     }
   ]
 }
@@ -191,9 +224,9 @@ Initial contract:
 ```rust
 // conceptually
 struct Datom {
-    entity: String,
-    attr: String,
-    value: serde_json::Value,
+    e: String,
+    a: String,
+    v: serde_json::Value,
     source: EvidenceRef,
 }
 ```
@@ -212,7 +245,7 @@ Do not integrate gitoxide yet. First write a Rust adapter that shells out to `gi
 
 ## 4. Phase D — gitoxide/gix: replace shell Git observation with library-backed facts
 
-Important distinction: `gitoxide` is the command-line application crate, but the project documentation says application developers should use the `gix` crate for API access. ([Docs.rs][1]) The current docs.rs page shows `gitoxide` 0.55.0, released June 22, 2026, and lists `gix ^0.85.0` as a dependency. ([Docs.rs][1]) The same page warns that the `gix` and `ein` binaries may remain unstable and should not be relied on in scripts, which is another reason to consume the library from Rust instead. ([Docs.rs][1])
+Important distinction: `gitoxide` is the command-line application crate, while application developers should use the `gix` crate for API access. Avoid scripting against unstable binaries; consume the library from Rust instead. ([Docs.rs][1])
 
 ### Adapter order
 
@@ -241,8 +274,10 @@ Do **not** start with clone/fetch/push/rebase. Those are operational Git behavio
 For every Git kata:
 
 ```text
-shell Git observation == gix-backed observation
+normalize(shell Git observation) == normalize(gix-backed observation)
 ```
+
+Equivalence means normalized datom equality: sort datoms deterministically, normalize paths relative to the repository root, and compare `e`, `a`, `v`, `phase`, and `kata`. Exclude unstable evidence fields such as command strings, absolute paths, timestamps, adapter names, and output ordering unless a kata explicitly tests one of those fields.
 
 Example report:
 
@@ -296,7 +331,6 @@ package semagrams
 	adapter: string
 	command?: string
 	path?: string
-	phase: "live" | "candidate" | "fixture"
 }
 
 #Datom: {
@@ -307,6 +341,8 @@ package semagrams
 }
 
 #DatomSet: {
+	schema: "gitfacts.datoms.v1"
+	kata: string
 	phase: "live" | "candidate" | "fixture"
 	datoms: [...#Datom]
 }
@@ -342,7 +378,7 @@ Your Git datoms should become another evidence stream inside that same acceptanc
 |     A | CUE schemas, unification, `cue vet/export` | `learning/plan.cue`        | plan exports                          |
 |     B | Git primitives via Pro Git/katas           | CUE-indexed micro-katas    | each kata has one invariant           |
 |     C | Rust basics for adapters                   | `gitfacts` JSON CLI        | golden JSON tests pass                |
-|     D | `gix` API                                  | replace shell Git facts    | shell facts == gix facts              |
+|     D | `gix` API                                  | replace shell Git facts    | normalized shell datoms == gix datoms |
 |     E | semagrams lowering                         | `DatomSet -> graph/report` | CUE accepts/rejects deterministically |
 |     F | stress probes                              | scale, bad cases, replay   | good accepted, bad rejected           |
 
@@ -408,12 +444,24 @@ Output:
 
 ```json
 {
+  "schema": "gitfacts.datoms.v1",
+  "kata": "02.03.object.commit-parent",
   "phase": "fixture",
-  "datoms": []
+  "datoms": [
+    {
+      "e": "commit:<head-oid>",
+      "a": "git.commit.parent",
+      "v": "commit:<parent-oid>",
+      "source": {
+        "adapter": "git-cli",
+        "command": "git cat-file -p HEAD"
+      }
+    }
+  ]
 }
 ```
 
-CUE validates the JSON.
+CUE validates the JSON and rejects an otherwise valid-looking result with an empty datom set for this kata.
 
 ---
 
@@ -453,15 +501,15 @@ Do not touch network, clone, fetch, push, merge, or rebase.
 For each kata:
 
 ```text
-git porcelain/plumbing output
+normalize(git porcelain/plumbing datoms)
   compared with
-gix-backed datoms
+normalize(gix-backed datoms)
 ```
 
 CUE report:
 
 ```cue
-accepted: shellFactsEquivalent && datomsValid && deterministic
+accepted: normalizedDatomsEquivalent && datomsValid && deterministic
 ```
 
 ---
@@ -552,4 +600,4 @@ CUE accepts/rejects the integrated result.
 
 That gives you a clean control loop instead of five parallel tracks.
 
-[1]: https://docs.rs/gitoxide/latest/gitoxide/ "gitoxide 0.55.0 - Docs.rs"
+[1]: https://docs.rs/gitoxide/latest/gitoxide/ "gitoxide - Docs.rs"
