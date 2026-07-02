@@ -1,0 +1,7 @@
+{
+  "schema": "codex.plugin.v1",
+  "name": "code-intel",
+  "version": "0.0.0",
+  "description": "Repository-local code intelligence profile for git-katas-progit.",
+  "skills": "skills"
+}
