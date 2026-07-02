@@ -8,4 +8,9 @@ Run the primary command family:
 git log
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- newest commit hash to `.answers/newest_commit`
+- oldest commit hash to `.answers/oldest_commit`
+- newest commit author field to `.answers/author_field`
+- newest commit subject to `.answers/commit_subject`

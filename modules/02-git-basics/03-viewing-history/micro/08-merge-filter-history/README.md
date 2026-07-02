@@ -7,7 +7,9 @@ Separate merge commits from ordinary commits.
 ## Primary command family
 
 ```bash
-git log --merges / --no-merges
+git log --merges
+git log --no-merges
+git show --summary
 ```
 
 ## Contract
@@ -23,4 +25,5 @@ Then: learner extracts the requested invariant
 - `task.md` — learner-facing task
 - `hints.md` — progressive hints
 - `verify.md` — intended verification checks
+- `fixture-notes.md` — fixture shape and required properties
 - `kata.cue` — machine-readable kata contract

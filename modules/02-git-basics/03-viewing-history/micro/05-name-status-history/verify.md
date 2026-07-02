@@ -1,5 +1,9 @@
 # Verification — 05-name-status-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/added_file_commit` matches the commit with `A` status for the target file.
+- `.answers/deleted_file_commit` matches the commit with `D` status for the target file.
+- `.answers/modified_file_commits` matches commits with `M` status for the target file.

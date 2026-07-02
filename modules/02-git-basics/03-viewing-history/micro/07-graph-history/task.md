@@ -8,4 +8,8 @@ Run the primary command family:
 git log --graph --oneline --decorate --all
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- current branch shown by `HEAD` decoration to `.answers/head_branch`
+- branch tip commits to `.answers/branch_tips`
+- merge commit hash to `.answers/merge_commit`

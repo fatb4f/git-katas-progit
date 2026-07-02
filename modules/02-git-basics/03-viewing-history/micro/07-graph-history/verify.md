@@ -1,5 +1,9 @@
 # Verification — 07-graph-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/head_branch` matches the branch currently decorated by `HEAD`.
+- `.answers/branch_tips` matches branch-tip commits visible in the graph.
+- `.answers/merge_commit` matches the merge commit in the fixture.

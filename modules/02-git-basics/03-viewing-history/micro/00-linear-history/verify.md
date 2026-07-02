@@ -1,5 +1,10 @@
 # Verification — 00-linear-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/newest_commit` matches the newest reachable commit.
+- `.answers/oldest_commit` matches the oldest reachable commit.
+- `.answers/author_field` matches the newest commit author.
+- `.answers/commit_subject` matches the newest commit subject.

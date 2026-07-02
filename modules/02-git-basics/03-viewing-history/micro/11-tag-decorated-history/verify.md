@@ -1,5 +1,8 @@
 # Verification — 11-tag-decorated-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/tagged_commit` matches the commit decorated by `v1.0`.
+- `.answers/commits_after_tag` contains commits reachable from `HEAD` and not from `v1.0`.

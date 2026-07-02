@@ -1,5 +1,8 @@
 # Verification — 10-pickaxe-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/introduced_symbol_commit` matches the commit where `featureFlag` first appears.
+- `.answers/removed_symbol_commit` matches the commit where `featureFlag` is removed.

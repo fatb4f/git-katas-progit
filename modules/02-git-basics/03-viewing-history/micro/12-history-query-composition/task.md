@@ -5,7 +5,10 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-combined git log filters
+git log v1.0..HEAD --graph --oneline --author="Ada" --grep="release" -- app/config.txt
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commits returned by the composed query to `.answers/composed_query_result`
+- a short explanation of each filter in the command to `.answers/explain_filter_chain`

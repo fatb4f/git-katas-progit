@@ -5,7 +5,12 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log --name-only / --name-status
+git log --name-only
+git log --name-status
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commit hash that added the target file to `.answers/added_file_commit`
+- commit hash that deleted the target file to `.answers/deleted_file_commit`
+- commit hashes that modified the target file to `.answers/modified_file_commits`

@@ -5,7 +5,11 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log --stat / --shortstat
+git log --stat
+git log --shortstat
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commit hash with the largest number of changed files to `.answers/largest_commit_by_files`
+- commit hash whose stats include deletions to `.answers/commit_with_deletions`

@@ -5,7 +5,10 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log -- path/to/file
+git log -- app/config.txt
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commits that touch `app/config.txt` to `.answers/only_commits_touching_path`
+- one unrelated commit excluded by the path filter to `.answers/excluded_unrelated_commit`

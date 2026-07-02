@@ -5,7 +5,10 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log -S<string>
+git log -SfeatureFlag
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commit hash that introduced `featureFlag` to `.answers/introduced_symbol_commit`
+- commit hash that removed `featureFlag` to `.answers/removed_symbol_commit`

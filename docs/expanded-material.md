@@ -22,7 +22,19 @@ The refactor keeps the strengths of both sources:
 |---|---|
 | Pro Git | conceptual ordering and vocabulary |
 | git-katas | hands-on practice and repository fixtures |
+| CUE | machine-readable contracts and validation gates |
 | micro-katas | small validation-friendly units |
+
+Use the layers this way:
+
+```text
+Pro Git decides where a concept belongs.
+git-katas contributes the practical repository situation.
+CUE defines the exact task, fixture, outputs, and checks.
+Markdown explains the learning intent.
+```
+
+If Markdown and CUE disagree, update CUE first and then mirror the learner-facing explanation.
 
 ## 2. Why Micro-Katas?
 

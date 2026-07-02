@@ -5,7 +5,13 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log -n / --since / --until
+git log -2
+git log --since="2024-01-03"
+git log --until="2024-01-03"
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commits returned by the count limit to `.answers/latest_two_commits`
+- commits returned by the since-date filter to `.answers/commits_after_date`
+- commits returned by the until-date filter to `.answers/commits_before_date`

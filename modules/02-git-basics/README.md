@@ -17,6 +17,18 @@ working tree -> index -> commit -> history -> refs/remotes/tags
 | 02.05 | Remotes | Exchange refs and objects with another repository |
 | 02.06 | Tagging | Attach stable names to commits |
 
+## Three-Layer Refactor
+
+This module combines three sources of authority:
+
+| Layer | Owns | In this module |
+|---|---|---|
+| Pro Git | chapter order, concepts, vocabulary | section IDs and conceptual progression |
+| git-katas | source exercises, repository situations, learner friction | upstream mappings and reusable fixture shapes |
+| CUE | machine-readable learning contract | micro-kata metadata, task outputs, verification checks |
+
+Markdown files explain the learning material. CUE files are the contract source for exact metadata, fixture names, expected outputs, and verifier checks.
+
 ## Refactor Principle
 
 Existing git-katas often bundle mutation and inspection in the same exercise. This refactor separates them:

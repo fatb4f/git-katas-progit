@@ -5,7 +5,13 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log --merges / --no-merges
+git log --merges
+git log --no-merges
+git show --summary
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- merge commit hash to `.answers/merge_commit`
+- merge parent hashes to `.answers/merge_parents`
+- number of non-merge commits to `.answers/non_merge_count`

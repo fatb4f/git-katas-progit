@@ -1,5 +1,9 @@
 # Verification — 09-message-author-date-filter
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/author_matches` contains commits matching `--author="Ada"`.
+- `.answers/message_matches` contains commits matching `--grep="release"`.
+- `.answers/date_range_matches` contains commits inside the specified date range.

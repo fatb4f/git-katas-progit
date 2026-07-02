@@ -1,5 +1,8 @@
 # Verification — 04-stat-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/largest_commit_by_files` matches the commit with the largest changed-file count.
+- `.answers/commit_with_deletions` matches a commit whose shortstat reports deletions.

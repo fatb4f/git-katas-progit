@@ -7,7 +7,8 @@ Read tags as commit refs and release boundaries.
 ## Primary command family
 
 ```bash
-git log --decorate / tag..HEAD
+git log --decorate
+git log v1.0..HEAD
 ```
 
 ## Contract
@@ -23,4 +24,5 @@ Then: learner extracts the requested invariant
 - `task.md` — learner-facing task
 - `hints.md` — progressive hints
 - `verify.md` — intended verification checks
+- `fixture-notes.md` — fixture shape and required properties
 - `kata.cue` — machine-readable kata contract

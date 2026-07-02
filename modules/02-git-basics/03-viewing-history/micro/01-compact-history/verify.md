@@ -1,5 +1,8 @@
 # Verification — 01-compact-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/short_hashes` maps fixture short hashes to subjects.
+- `.answers/latest_three_subjects` lists the latest three subjects newest first.

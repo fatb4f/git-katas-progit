@@ -1,5 +1,8 @@
 # Verification — 03-patch-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/commit_that_added_line` matches the commit whose patch adds the target line.
+- `.answers/commit_that_removed_line` matches the commit whose patch removes the target line.

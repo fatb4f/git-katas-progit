@@ -1,5 +1,8 @@
 # Verification — 06-path-limited-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/only_commits_touching_path` contains only commits that touch `app/config.txt`.
+- `.answers/excluded_unrelated_commit` names a reachable commit omitted by the path-limited query.

@@ -6,6 +6,10 @@ Run the primary command family:
 
 ```bash
 git log --oneline
+git log --oneline -3
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- short-hash to subject mappings to `.answers/short_hashes`
+- latest three commit subjects, newest first, to `.answers/latest_three_subjects`

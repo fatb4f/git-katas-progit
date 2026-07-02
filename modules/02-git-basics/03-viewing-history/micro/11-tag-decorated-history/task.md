@@ -5,7 +5,11 @@ Use the prepared repository fixture. Do not mutate history unless the task expli
 Run the primary command family:
 
 ```bash
-git log --decorate / tag..HEAD
+git log --decorate
+git log v1.0..HEAD
 ```
 
-Write the requested answer values into `.answers/` files as specified by the verifier.
+Write:
+
+- commit hash decorated with `v1.0` to `.answers/tagged_commit`
+- commits after `v1.0` to `.answers/commits_after_tag`

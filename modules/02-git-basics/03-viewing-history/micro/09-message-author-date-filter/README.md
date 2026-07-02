@@ -7,7 +7,9 @@ Query commits by metadata.
 ## Primary command family
 
 ```bash
-git log --grep / --author / --since
+git log --grep="release"
+git log --author="Ada"
+git log --since="2024-01-02" --until="2024-01-04"
 ```
 
 ## Contract
@@ -23,4 +25,5 @@ Then: learner extracts the requested invariant
 - `task.md` — learner-facing task
 - `hints.md` — progressive hints
 - `verify.md` — intended verification checks
+- `fixture-notes.md` — fixture shape and required properties
 - `kata.cue` — machine-readable kata contract

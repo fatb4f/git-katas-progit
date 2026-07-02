@@ -3,6 +3,11 @@ package gitbasics
 chapter: {
 	id:    "02"
 	title: "Git Basics"
+	layers: {
+		proGit:   "chapter order and vocabulary"
+		gitKatas: "upstream exercise source and fixture situations"
+		cue:      "authoritative micro-kata contract"
+	}
 	stateMachine: ["working-tree", "index", "commit", "history", "refs", "remote-refs", "tags"]
 	sections: [
 		{
@@ -17,7 +22,7 @@ chapter: {
 			name: "recording-changes"
 			kind: "mutation"
 			upstream: ["basic-staging", "basic-commits", "ignore"]
-			micro: ["observe-untracked-file", "stage-new-file", "commit-staged-file", "modify-tracked-file", "ignore-file", "remove-tracked-file"]
+			micro: ["observe-untracked-file", "stage-new-file", "commit-staged-file", "modify-tracked-file", "stage-modification", "ignore-file", "remove-tracked-file"]
 		},
 		{
 			id: "02.03"

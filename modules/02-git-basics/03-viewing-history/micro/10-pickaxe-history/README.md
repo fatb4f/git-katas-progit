@@ -7,7 +7,7 @@ Locate introduction/removal of a symbol.
 ## Primary command family
 
 ```bash
-git log -S<string>
+git log -SfeatureFlag
 ```
 
 ## Contract
@@ -23,4 +23,5 @@ Then: learner extracts the requested invariant
 - `task.md` — learner-facing task
 - `hints.md` — progressive hints
 - `verify.md` — intended verification checks
+- `fixture-notes.md` — fixture shape and required properties
 - `kata.cue` — machine-readable kata contract

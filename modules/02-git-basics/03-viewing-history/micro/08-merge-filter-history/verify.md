@@ -1,5 +1,9 @@
 # Verification — 08-merge-filter-history
 
-Verification mode: answer or command-output.
+Verification mode: answer.
 
-The verifier should check that the learner extracted the correct history invariant from the fixture, not that they used an exact command spelling.
+Check:
+
+- `.answers/merge_commit` matches the commit returned by `git log --merges`.
+- `.answers/merge_parents` matches both parents shown by `git show --summary`.
+- `.answers/non_merge_count` matches the count returned by `git log --no-merges`.
