@@ -49,13 +49,3 @@ Examples:
 | Learn git log | linear log, oneline log, patch log, path log, graph log |
 | Learn undoing | amend, unstage, restore, revert, reset-soft, reset-mixed, reset-hard |
 
-## Suggested Runner Surface
-
-```bash
-katactl list
-katactl show 02.03.00
-katactl start 02.03.00
-katactl verify
-katactl reset
-katactl next
-```
