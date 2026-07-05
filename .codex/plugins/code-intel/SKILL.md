@@ -1,33 +1,25 @@
 ---
-name: code-intel-cue-lsp
-description: Use the repository-local CUE-only code intelligence profile.
+name: dotfiles-code-intel
+description: Read-only code-intelligence reference overlays for dotfiles work.
 ---
 
-# Code Intel: CUE LSP Profile
+# Dotfiles Code Intel
 
-This profile is intentionally limited to CUE language-server support for `git-katas-progit`.
+This installed plugin contains one operator skill and read-only reference material for dotfiles code-intelligence work.
 
-## Authority Boundary
+## Contract boundary
 
-1. Treat repository CUE files as source authority for curriculum structure and micro-kata contracts.
-2. Treat LSP diagnostics, generated JSON, and tool output as evidence only.
-3. Do not infer authority from markdown prose when nearby CUE contracts disagree.
-4. Do not activate non-CUE providers from this profile.
+- Load reference/type overlays as read-only operator context.
+- Do not treat reference files as source authority.
+- Do not treat MCP output, LSP diagnostics, type stubs, or workflow JSON as source authority.
+- Do not import or depend on the agent-context-resolver bundle.
+- Do not place `contracts`, `generated`, `skills`, or `manifest.json` under the installed plugin root.
+- All CUE authority remains in factory/plugin-bundle contracts.
+- All dotfiles source authority remains in dotfiles source paths.
 
-## Included Provider
+## Reference layout
 
-- `cue-lsp`: CUE files under `index.cue` and `modules/**/*.cue`.
-
-## Excluded Providers
-
-- Markdown language services
-- Git command analysis providers
-- Fixture execution providers
-- Lua, WezTerm, and Neovim providers
-- MCP-derived mutation providers
-
-## Validation
-
-```sh
-cue eval ./...
-```
+- `reference/lsp/`: LSP provider and routing context.
+- `reference/tools/`: formatter and lint tool context.
+- `reference/types/`: Neovim and WezTerm type overlays.
+- `reference/workflows/`: Lua-first operator workflow context.
