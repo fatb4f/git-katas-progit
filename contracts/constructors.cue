@@ -1,94 +1,69 @@
-package impl
+package meta
 
 import (
 	"list"
 	"strings"
 )
 
-// Blueprint layer: bounded vocabulary, identifiers, closed shapes, and reference maps.
+// Primitive constraints shared by projections.
 #NonEmptyString: string & strings.MinRunes(1)
 #NonEmptyStringList: [...#NonEmptyString] & [_, ...]
 #KebabIdentifier: #NonEmptyString & =~"^[a-z0-9]+(-[a-z0-9]+)*$"
+#CueSelectorExpr: #NonEmptyString & =~"^[_#A-Za-z][_A-Za-z0-9]*(\\.[_A-Za-z][_A-Za-z0-9]*)*$"
+
 #KebabMapKeyGuard: {
 	[ID= !~"^[a-z0-9]+(-[a-z0-9]+)*$"]: {
 		_invalidMapKey: ID & #KebabIdentifier
 	}
 }
 
-#CodexActionKind:
-	"inspect" |
-	"edit" |
-	"create" |
-	"generate" |
-	"validate" |
-	"collectEvidence" |
-	"report"
+#RefSet: {
+	[ID= !~"^[a-z0-9]+(-[a-z0-9]+)*$"]: {
+		_invalidMapKey: ID & #KebabIdentifier
+	}
+	[string]: true
+}
 
-#ArtifactRole:
-	"authority" |
-	"input" |
-	"mutationTarget" |
-	"generatedOutput" |
-	"evidence" |
-	"forbidden"
-
-#AssertionMode:
-	"unifies" |
-	"bottoms" |
-	"subsumes" |
-	"preserves" |
-	"requires" |
-	"forbids"
-
-#FixturePolarity:
-	"positive" |
-	"negative"
+// Projections refine these vocabularies with bounded enums.
+#ResourceRole:                #NonEmptyString
+#OperationKind:               #NonEmptyString
+#GeneratedOutputResourceRole: "generated-output"
 
 #VisibilityTier:
 	"public" |
 	"internal" |
 	"restricted"
 
-#EvalFamily:
-	"assertion" |
-	"negativeFixture" |
-	"subsumption" |
-	"generatedMatrix"
-
-#RefSet: close(#KebabMapKeyGuard & {
-	[string]: true
-})
-
-// Input/matrix layer: declarative obligation state and witness records.
-#Artifact: close({
+// Domain-neutral graph kernel.
+#Resource: close({
 	[F= !~"^(id|path|role|visibility)$"]: {
 		_invalidField: F & =~"^(id|path|role|visibility)$"
 	}
 
 	id:         #KebabIdentifier
 	path:       #NonEmptyString
-	role:       #ArtifactRole
+	role:       #ResourceRole
 	visibility: #VisibilityTier | *"internal"
 })
 
-#Action: close({
-	[F= !~"^(id|kind|description|reads|writes|creates|requiresChecks|requiresEvidence)$"]: {
-		_invalidField: F & =~"^(id|kind|description|reads|writes|creates|requiresChecks|requiresEvidence)$"
+#Operation: close({
+	[F= !~"^(id|kind|description|reads|writes|creates|requiresGates|requiresWitnesses)$"]: {
+		_invalidField: F & =~"^(id|kind|description|reads|writes|creates|requiresGates|requiresWitnesses)$"
 	}
 
 	id:          #KebabIdentifier
-	kind:        #CodexActionKind
+	kind:        #OperationKind
 	description: #NonEmptyString
 
 	reads:   #RefSet
 	writes:  #RefSet
 	creates: #RefSet
 
-	requiresChecks:   #RefSet
-	requiresEvidence: #RefSet
+	requiresGates:     #RefSet
+	requiresWitnesses: #RefSet
 })
 
-#Check: close({
+#Gate: close({
 	[F= !~"^(id|description|required)$"]: {
 		_invalidField: F & =~"^(id|description|required)$"
 	}
@@ -98,7 +73,7 @@ import (
 	required:    bool | *true
 })
 
-#Evidence: close({
+#Witness: close({
 	[F= !~"^(id|description|required)$"]: {
 		_invalidField: F & =~"^(id|description|required)$"
 	}
@@ -108,117 +83,151 @@ import (
 	required:    bool | *true
 })
 
-#CodexObligationState: close({
+#ResourceMap: {
+	[ID= !~"^[a-z0-9]+(-[a-z0-9]+)*$"]: {
+		_invalidMapKey: ID & #KebabIdentifier
+	}
+	[string]: #Resource
+	[ID=string]: {
+		id: ID
+	}
+}
+
+#OperationMap: {
+	[ID= !~"^[a-z0-9]+(-[a-z0-9]+)*$"]: {
+		_invalidMapKey: ID & #KebabIdentifier
+	}
+	[string]: #Operation
+	[ID=string]: {
+		id: ID
+	}
+}
+
+#GateMap: {
+	[ID= !~"^[a-z0-9]+(-[a-z0-9]+)*$"]: {
+		_invalidMapKey: ID & #KebabIdentifier
+	}
+	[string]: #Gate
+	[ID=string]: {
+		id: ID
+	}
+}
+
+#WitnessMap: {
+	[ID= !~"^[a-z0-9]+(-[a-z0-9]+)*$"]: {
+		_invalidMapKey: ID & #KebabIdentifier
+	}
+	[string]: #Witness
+	[ID=string]: {
+		id: ID
+	}
+}
+
+#ObligationState: {
+	[F= !~"^(id|resources|operations|gates|witnesses)$"]: {
+		_invalidField: F & =~"^(id|resources|operations|gates|witnesses)$"
+	}
+
 	id: #KebabIdentifier
 
-	artifacts: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Artifact & {
-			id: ID
-		}
-	})
+	resources:  #ResourceMap
+	operations: #OperationMap
+	gates:      #GateMap
+	witnesses:  #WitnessMap
+}
 
-	actions: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Action & {
-			id: ID
-		}
-	})
+#ClosedObligationState: {
+	[F= !~"^(id|resources|operations|gates|witnesses)$"]: {
+		_invalidField: F & =~"^(id|resources|operations|gates|witnesses)$"
+	}
 
-	checks: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Check & {
-			id: ID
-		}
-	})
-
-	evidence: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Evidence & {
-			id: ID
-		}
-	})
-})
-
-#ObligationState: #CodexObligationState
-
-#ClosedObligationState: close({
 	id: #KebabIdentifier
 
-	artifacts: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Artifact & {
-			id: ID
+	resources:  #ResourceMap
+	operations: #OperationMap
+	gates:      #GateMap
+	witnesses:  #WitnessMap
+
+	_operationRefProof: {
+		for operationID, operation in operations {
+			for resourceID, _ in operation.reads {
+				"\(operationID)-reads-\(resourceID)-exists": list.Contains(list.SortStrings([for key, _ in resources {key}]), resourceID) & true
+			}
+			for resourceID, _ in operation.writes {
+				"\(operationID)-writes-\(resourceID)-exists": list.Contains(list.SortStrings([for key, _ in resources {key}]), resourceID) & true
+			}
+			for resourceID, _ in operation.creates {
+				"\(operationID)-creates-\(resourceID)-exists": list.Contains(list.SortStrings([for key, _ in resources {key}]), resourceID) & true
+				"\(operationID)-creates-\(resourceID)-role": resources[resourceID] & {
+					role: #GeneratedOutputResourceRole
+				}
+			}
+			for gateID, _ in operation.requiresGates {
+				"\(operationID)-requires-gate-\(gateID)-exists": list.Contains(list.SortStrings([for key, _ in gates {key}]), gateID) & true
+			}
+			for witnessID, _ in operation.requiresWitnesses {
+				"\(operationID)-requires-witness-\(witnessID)-exists": list.Contains(list.SortStrings([for key, _ in witnesses {key}]), witnessID) & true
+			}
 		}
-	})
-	actions: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Action & {
-			id: ID
-		}
-	})
-	checks: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Check & {
-			id: ID
-		}
-	})
-	evidence: close(#KebabMapKeyGuard & {
-		[ID=#KebabIdentifier]: #Evidence & {
-			id: ID
-		}
-	})
-})
+	}
+}
 
 #MakeClosedObligationState: {
-	in: #CodexObligationState
-	out: close({
+	in: #ObligationState
+	out: #ClosedObligationState & {
 		id: in.id
 
-		artifacts: close({
-			for artifactID, artifact in in.artifacts {
-				"\(artifactID)": artifact & {
-					id: artifactID
+		resources: {
+			for resourceID, resource in in.resources {
+				"\(resourceID)": resource & {
+					id: resourceID
 				}
 			}
-		})
+		}
 
-		actions: close({
-			for actionID, action in in.actions {
-				"\(actionID)": action & {
-					id: actionID
+		operations: {
+			for operationID, operation in in.operations {
+				"\(operationID)": operation & {
+					id: operationID
 				}
 			}
-		})
+		}
 
-		checks: close({
-			for checkID, check in in.checks {
-				"\(checkID)": check & {
-					id: checkID
+		gates: {
+			for gateID, gate in in.gates {
+				"\(gateID)": gate & {
+					id: gateID
 				}
 			}
-		})
+		}
 
-		evidence: close({
-			for evidenceID, item in in.evidence {
-				"\(evidenceID)": item & {
-					id: evidenceID
+		witnesses: {
+			for witnessID, witness in in.witnesses {
+				"\(witnessID)": witness & {
+					id: witnessID
 				}
 			}
-		})
-	})
+		}
+	}
 }
 
 #StateKeySet: close({
 	state: #ClosedObligationState
 
-	artifacts: list.SortStrings([for key, _ in state.artifacts {key}])
-	actions: list.SortStrings([for key, _ in state.actions {key}])
-	checks: list.SortStrings([for key, _ in state.checks {key}])
-	evidence: list.SortStrings([for key, _ in state.evidence {key}])
+	resources: list.SortStrings([for key, _ in state.resources {key}])
+	operations: list.SortStrings([for key, _ in state.operations {key}])
+	gates: list.SortStrings([for key, _ in state.gates {key}])
+	witnesses: list.SortStrings([for key, _ in state.witnesses {key}])
 })
 
-#ActionRefKeySet: close({
-	action: #Action
+#OperationRefKeySet: close({
+	operation: #Operation
 
-	reads: list.SortStrings([for key, _ in action.reads {key}])
-	writes: list.SortStrings([for key, _ in action.writes {key}])
-	creates: list.SortStrings([for key, _ in action.creates {key}])
-	requiresChecks: list.SortStrings([for key, _ in action.requiresChecks {key}])
-	requiresEvidence: list.SortStrings([for key, _ in action.requiresEvidence {key}])
+	reads: list.SortStrings([for key, _ in operation.reads {key}])
+	writes: list.SortStrings([for key, _ in operation.writes {key}])
+	creates: list.SortStrings([for key, _ in operation.creates {key}])
+	requiresGates: list.SortStrings([for key, _ in operation.requiresGates {key}])
+	requiresWitnesses: list.SortStrings([for key, _ in operation.requiresWitnesses {key}])
 })
 
 #NoWideningProof: close({
@@ -229,23 +238,23 @@ import (
 	targetKeys: (#StateKeySet & {state: target})
 
 	keyEquality: {
-		artifacts: authorityKeys.artifacts & targetKeys.artifacts
-		actions:   authorityKeys.actions & targetKeys.actions
-		checks:    authorityKeys.checks & targetKeys.checks
-		evidence:  authorityKeys.evidence & targetKeys.evidence
+		resources:  authorityKeys.resources & targetKeys.resources
+		operations: authorityKeys.operations & targetKeys.operations
+		gates:      authorityKeys.gates & targetKeys.gates
+		witnesses:  authorityKeys.witnesses & targetKeys.witnesses
 	}
 
-	actionRefEquality: {
-		for actionID, _ in authority.actions {
-			"\(actionID)": {
-				authorityRefs: (#ActionRefKeySet & {action: authority.actions[actionID]})
-				targetRefs: (#ActionRefKeySet & {action: target.actions[actionID]})
+	operationRefEquality: {
+		for operationID, _ in authority.operations {
+			"\(operationID)": {
+				authorityRefs: (#OperationRefKeySet & {operation: authority.operations[operationID]})
+				targetRefs: (#OperationRefKeySet & {operation: target.operations[operationID]})
 
-				reads:            authorityRefs.reads & targetRefs.reads
-				writes:           authorityRefs.writes & targetRefs.writes
-				creates:          authorityRefs.creates & targetRefs.creates
-				requiresChecks:   authorityRefs.requiresChecks & targetRefs.requiresChecks
-				requiresEvidence: authorityRefs.requiresEvidence & targetRefs.requiresEvidence
+				reads:             authorityRefs.reads & targetRefs.reads
+				writes:            authorityRefs.writes & targetRefs.writes
+				creates:           authorityRefs.creates & targetRefs.creates
+				requiresGates:     authorityRefs.requiresGates & targetRefs.requiresGates
+				requiresWitnesses: authorityRefs.requiresWitnesses & targetRefs.requiresWitnesses
 			}
 		}
 	}
@@ -253,428 +262,83 @@ import (
 	compatibility: authority & target
 })
 
-// Exit-gate layer: assertion witnesses, negative fixtures, and subsumption checks.
-#Assertion: close({
-	id:          #KebabIdentifier
-	mode:        #AssertionMode
-	family:      #EvalFamily | *"assertion"
-	description: #NonEmptyString
-
-	expected?:        _
-	observed?:        _
-	invalid?:         _
-	proof?:           _
-	noWidening?:      bool
-	expectedFailure?: bool
-})
-
-#MakeAssertion: {
-	in:  #Assertion
-	out: #Assertion & in
-}
-
-#PositiveFixture: close({
-	id:          #KebabIdentifier
-	description: #NonEmptyString
-	polarity:    "positive"
-	_fixtureID:  id
-
-	authority: #ClosedObligationState
-	candidate: #ClosedObligationState
-	proof:     authority & candidate
-
-	assertion: #Assertion & {
-		id:          "positive-\(_fixtureID)"
-		mode:        "unifies"
-		family:      "assertion"
-		description: "Candidate state must unify with authority"
-		expected:    authority
-		observed:    candidate
-		proof:       proof
-	}
-})
-
-#MakePositiveFixture: {
-	in: close({
-		id:          #KebabIdentifier
-		description: #NonEmptyString
-		authority:   #CodexObligationState
-		candidate:   #CodexObligationState
-	})
-	_inputAuthority: in.authority
-	_inputCandidate: in.candidate
-	_authority: (#MakeClosedObligationState & {in: _inputAuthority}).out
-	_candidate: (#MakeClosedObligationState & {in: _inputCandidate}).out
-	out: #PositiveFixture & {
-		id:          in.id
-		description: in.description
-		polarity:    "positive"
-		authority:   _authority
-		candidate:   _candidate
-		proof:       _authority & _candidate
-		assertion: {
-			id:          "positive-\(in.id)"
-			mode:        "unifies"
-			family:      "assertion"
-			description: "Candidate state must unify with authority"
-			expected:    _authority
-			observed:    _candidate
-			proof:       _authority & _candidate
-		}
-	}
-}
-
-#NegativeFixture: close({
+#NegativeFixtureSpec: close({
 	id:          #KebabIdentifier
 	description: #NonEmptyString
 	polarity:    "negative"
-	_fixtureID:  id
 
 	authority: #ClosedObligationState
 	invalid:   #ClosedObligationState
-	proof:     authority & invalid
 
-	assertion: #Assertion & {
-		id:              "negative-\(_fixtureID)"
-		mode:            "bottoms"
-		family:          "negativeFixture"
-		description:     "Invalid state must bottom against authority"
-		expected:        authority
-		invalid:         invalid
-		proof:           proof
-		expectedFailure: true
+	proofStatus: "requiresDestructiveProbe"
+})
+
+#NegativeFixture:          #NegativeFixtureSpec
+#UncheckedNegativeFixture: #NegativeFixtureSpec
+
+#NegativeFixtureProbeSpec: {
+	authority: #ClosedObligationState
+	invalid:   #ClosedObligationState
+	...
+}
+
+#NegativeFixtureConflictProbe: #NegativeFixtureProbeSpec & {
+	authority: #ClosedObligationState
+	invalid:   #ClosedObligationState
+
+	proof: authority & invalid
+}
+
+#NegativeFixtureProbeBinding: close({
+	fixture: #NegativeFixtureSpec
+	probe: #NegativeFixtureConflictProbe & {
+		authority: fixture.authority
+		invalid:   fixture.invalid
 	}
 })
 
-#MakeNegativeFixture: {
+#NegativeFixtureCheck: #NegativeFixtureProbeBinding
+
+#MakeUncheckedNegativeFixture: {
 	in: close({
 		id:          #KebabIdentifier
 		description: #NonEmptyString
-		authority:   #CodexObligationState
-		invalid:     #CodexObligationState
+		authority:   #ObligationState
+		invalid:     #ObligationState
 	})
-	_inputAuthority: in.authority
-	_inputInvalid:   in.invalid
-	_authority: (#MakeClosedObligationState & {in: _inputAuthority}).out
-	_invalid: (#MakeClosedObligationState & {in: _inputInvalid}).out
-	out: #NegativeFixture & {
+	let closedAuthority = (#MakeClosedObligationState & {"in": in.authority}).out
+	let closedInvalid = (#MakeClosedObligationState & {"in": in.invalid}).out
+	out: #NegativeFixtureSpec & {
 		id:          in.id
 		description: in.description
 		polarity:    "negative"
-		authority:   _authority
-		invalid:     _invalid
-		proof:       _authority & _invalid
-		assertion: {
-			id:              "negative-\(in.id)"
-			mode:            "bottoms"
-			family:          "negativeFixture"
-			description:     "Invalid state must bottom against authority"
-			expected:        _authority
-			invalid:         _invalid
-			proof:           _authority & _invalid
-			expectedFailure: true
-		}
+		authority:   closedAuthority
+		invalid:     closedInvalid
+		proofStatus: "requiresDestructiveProbe"
 	}
 }
 
-#Subsumption: close({
-	id:             #KebabIdentifier
-	description:    #NonEmptyString
-	_subsumptionID: id
+#MakeNegativeFixtureSpec: #MakeUncheckedNegativeFixture
 
-	authority: #ClosedObligationState
-	target:    #ClosedObligationState
-
-	assertion: #Assertion & {
-		id:          "subsumes-\(_subsumptionID)"
-		mode:        "subsumes"
-		family:      "subsumption"
-		description: "Target state must not widen authority"
-		expected:    authority
-		observed:    target
-		proof: #NoWideningProof & {authority: authority, target: target}
-		noWidening: true
-	}
-})
-
-#MakeSubsumption: {
+#MakeNegativeFixtureProbeBinding: {
 	in: close({
 		id:          #KebabIdentifier
 		description: #NonEmptyString
-		authority:   #CodexObligationState
-		target:      #CodexObligationState
+		authority:   #ObligationState
+		invalid:     #ObligationState
 	})
-	_inputAuthority: in.authority
-	_inputTarget:    in.target
-	_authority: (#MakeClosedObligationState & {in: _inputAuthority}).out
-	_target: (#MakeClosedObligationState & {in: _inputTarget}).out
-	out: #Subsumption & {
-		id:          in.id
-		description: in.description
-		authority:   _authority
-		target:      _target
-		assertion: {
-			id:          "subsumes-\(in.id)"
-			mode:        "subsumes"
-			family:      "subsumption"
-			description: "Target state must not widen authority"
-			expected:    _authority
-			observed:    _target
-			proof: #NoWideningProof & {authority: _authority, target: _target}
-			noWidening: true
+	let builtFixture = (#MakeUncheckedNegativeFixture & {
+		"in": in
+	}).out
+	out: #NegativeFixtureProbeBinding & {
+		fixture: builtFixture
+		probe: {
+			authority: builtFixture.authority
+			invalid:   builtFixture.invalid
 		}
 	}
 }
 
-#AuthorityDerivedTarget: close({
-	authority:       #CodexObligationState
-	_inputAuthority: authority
-	_authority: (#MakeClosedObligationState & {in: _inputAuthority}).out
+#MakeNegativeFixture: #MakeNegativeFixtureProbeBinding
 
-	target: #ClosedObligationState & {
-		id:        _authority.id
-		artifacts: _authority.artifacts
-		actions:   _authority.actions
-		checks:    _authority.checks
-		evidence:  _authority.evidence
-	}
-})
-
-// Generation layer: derive assertion matrices from compact obligation state.
-#GeneratedAssertionMatrix: close({
-	state: #ClosedObligationState
-
-	assertions: {
-		for actionID, action in state.actions {
-			for artifactID, _ in action.reads {
-				"action-\(actionID)-reads-artifact-\(artifactID)": #Assertion & {
-					id:          "action-\(actionID)-reads-artifact-\(artifactID)"
-					mode:        "requires"
-					family:      "generatedMatrix"
-					description: "Action read must reference an existing artifact"
-					expected:    state.artifacts[artifactID]
-					observed:    state.artifacts[artifactID]
-					proof:       state.artifacts[artifactID]
-				}
-			}
-		}
-
-		for actionID, action in state.actions {
-			for artifactID, _ in action.writes {
-				"action-\(actionID)-writes-artifact-\(artifactID)": #Assertion & {
-					id:          "action-\(actionID)-writes-artifact-\(artifactID)"
-					mode:        "requires"
-					family:      "generatedMatrix"
-					description: "Action write must reference an existing artifact"
-					expected:    state.artifacts[artifactID]
-					observed:    state.artifacts[artifactID]
-					proof:       state.artifacts[artifactID]
-				}
-			}
-		}
-
-		for actionID, action in state.actions {
-			for artifactID, _ in action.creates {
-				"action-\(actionID)-creates-artifact-\(artifactID)": #Assertion & {
-					id:          "action-\(actionID)-creates-artifact-\(artifactID)"
-					mode:        "requires"
-					family:      "generatedMatrix"
-					description: "Action create must reference an existing generated-output artifact"
-					expected: state.artifacts[artifactID] & {
-						role: "generatedOutput"
-					}
-					observed: state.artifacts[artifactID]
-					proof: state.artifacts[artifactID] & {
-						role: "generatedOutput"
-					}
-				}
-			}
-		}
-
-		for actionID, action in state.actions {
-			for checkID, _ in action.requiresChecks {
-				"action-\(actionID)-requires-check-\(checkID)": #Assertion & {
-					id:          "action-\(actionID)-requires-check-\(checkID)"
-					mode:        "requires"
-					family:      "generatedMatrix"
-					description: "Required action must reference an existing check"
-					expected:    state.checks[checkID]
-					observed:    state.checks[checkID]
-					proof:       state.checks[checkID]
-				}
-			}
-		}
-
-		for actionID, action in state.actions {
-			for evidenceID, _ in action.requiresEvidence {
-				"action-\(actionID)-requires-evidence-\(evidenceID)": #Assertion & {
-					id:          "action-\(actionID)-requires-evidence-\(evidenceID)"
-					mode:        "requires"
-					family:      "generatedMatrix"
-					description: "Required action must reference existing evidence"
-					expected:    state.evidence[evidenceID]
-					observed:    state.evidence[evidenceID]
-					proof:       state.evidence[evidenceID]
-				}
-			}
-		}
-
-		for actionID, action in state.actions {
-			for artifactID, _ in action.writes {
-				if state.artifacts[artifactID].role == "forbidden" {
-					"action-\(actionID)-must-not-write-\(artifactID)": #Assertion & {
-						id:          "action-\(actionID)-must-not-write-\(artifactID)"
-						mode:        "forbids"
-						family:      "negativeFixture"
-						description: "Action must not write forbidden artifact"
-						expected:    state.artifacts[artifactID]
-						invalid: {
-							id:   artifactID
-							path: state.artifacts[artifactID].path
-							role: "mutationTarget"
-						}
-						expectedFailure: true
-					}
-				}
-			}
-		}
-	}
-})
-
-#MakeGeneratedAssertionMatrix: {
-	in: close({
-		state: #CodexObligationState
-	})
-	_inputState: in.state
-	_state: (#MakeClosedObligationState & {in: _inputState}).out
-	out: #GeneratedAssertionMatrix & {
-		state: _state
-	}
-}
-
-// Projection layer: TDD/BDD fixtures are views over assertions and obligation state.
-#TDDFixture: close({
-	id:    #KebabIdentifier
-	phase: "red" | "green" | "refactor"
-
-	assertion: #Assertion
-})
-
-#BDDFixture: close({
-	id:      #KebabIdentifier
-	feature: #KebabIdentifier
-
-	given: #CodexObligationState
-	when:  #Action
-	then:  #Assertion
-})
-
-// Exit-gate witnesses: validation and completion reports project kernel results.
-#ValidationCommandKind:
-	"cue-vet" |
-	"cue-eval" |
-	"cue-export" |
-	"cue-export-expected-failure" |
-	"matrix-assertion"
-
-#ValidationCommand:
-	close({
-		kind: "cue-vet"
-		argv: #NonEmptyStringList
-	}) |
-	close({
-		kind: "cue-eval"
-		argv: #NonEmptyStringList
-	}) |
-	close({
-		kind: "cue-export"
-		argv: #NonEmptyStringList
-	}) |
-	close({
-		kind:                "cue-export-expected-failure"
-		argv:                #NonEmptyStringList
-		expectedFailure:     true
-		expectedDiagnostic?: #NonEmptyString
-	}) |
-	close({
-		kind:      "matrix-assertion"
-		argv:      #NonEmptyStringList
-		assertion: #KebabIdentifier
-	})
-
-#ValidationPlan: close({
-	kind: "validation-plan"
-	commands: [...#ValidationCommand] & [_, ...]
-	assertions: close(#KebabMapKeyGuard & {
-		[string]: #Assertion
-	})
-})
-
-#MakeValidationPlan: {
-	in: close({
-		commands: [...#ValidationCommand] & [_, ...]
-		assertions: close(#KebabMapKeyGuard & {
-			[string]: #Assertion
-		})
-	})
-	out: #ValidationPlan & {
-		kind:       "validation-plan"
-		commands:   in.commands
-		assertions: in.assertions
-	}
-}
-
-#CompletionReportContract: close({
-	kind:             "completion-report-contract"
-	requiredSections: #NonEmptyStringList
-	expected: close({
-		state: #KebabIdentifier
-		assertions: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-		fixtures: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-		subsumptions: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-		commands: [...#ValidationCommand] & [_, ...]
-		evidence: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-	})
-})
-
-#MakeCompletionReport: {
-	in: close({
-		state: #KebabIdentifier
-		assertions: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-		fixtures: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-		subsumptions: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-		commands: [...#ValidationCommand] & [_, ...]
-		evidence: close(#KebabMapKeyGuard & {
-			[string]: bool
-		})
-	})
-	out: #CompletionReportContract & {
-		kind: "completion-report-contract"
-		requiredSections: [
-			"summary",
-			"obligation state",
-			"assertions",
-			"negative fixtures",
-			"subsumptions",
-			"generated matrix",
-			"validation",
-			"evidence",
-			"final result",
-		]
-		expected: in
-	}
-}
+#MakeNegativeFixtureCheck: #MakeNegativeFixtureProbeBinding
