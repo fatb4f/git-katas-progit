@@ -1,6 +1,6 @@
 # 02.03 — Viewing the Commit History
 
-This section converts Pro Git's `git log` chapter into inspection micro-katas backed by reusable git-katas-style fixtures and CUE contracts.
+This section converts Pro Git's `git log` chapter into native Git+CUE micro-katas backed by reusable git-katas-style fixtures and executable CUE lattice contracts.
 
 ## Core Contract
 
@@ -11,23 +11,48 @@ git log
   output: ordered commit records
 ```
 
+## Git+CUE Control Plane
+
+Each micro-kata is both a Git workflow and a CUE lattice problem:
+
+```text
+Git:
+  inspect repository history
+  record answer evidence
+
+CUE:
+  declare resources, operations, gates, and witnesses
+  close the obligation state with #MakeClosedObligationState
+  reject dangling workflow references during evaluation
+```
+
+The executable kernel is the repo-local `contracts/constructors.cue`. It is expected to remain identical to `/home/_404/src/lattice/meta/kernel.cue`; use `diff -q /home/_404/src/lattice/meta/kernel.cue contracts/constructors.cue` as the provenance check.
+
+The kata loop is:
+
+```text
+inspect -> witness -> cue eval -> promote
+```
+
+`git` fields define the real repository workflow. `cue.obligation` defines the lattice state for that workflow. `cue.closed` is derived by the constructor and proves that all operation references point to declared resources, gates, and witnesses.
+
 ## Micro-Kata Track
 
-| ID | Name | Main commands | Source slice |
+| ID | Name | Main commands | Lattice problem |
 |---:|---|---|---|
-| 02.03.00 | linear-history | `git log` | basic-commits |
-| 02.03.01 | compact-history | `git log --oneline`, `git log --oneline -3` | basic-commits |
-| 02.03.02 | limit-history | `git log -2`, `git log --since="2024-01-03"` | bridge |
-| 02.03.03 | patch-history | `git log -p`, `git show` | basic-commits, amend, revert |
-| 02.03.04 | stat-history | `git log --stat`, `git log --shortstat` | basic-staging |
-| 02.03.05 | name-status-history | `git log --name-only`, `git log --name-status` | basic-staging, ignore, git-rm |
-| 02.03.06 | path-limited-history | `git log -- app/config.txt` | basic-staging, investigation |
-| 02.03.07 | graph-history | `git log --graph --oneline --decorate --all` | branching, merge |
-| 02.03.08 | merge-filter-history | `git log --merges`, `git log --no-merges` | 3-way-merge, merge-conflict |
-| 02.03.09 | message-author-date-filter | `git log --grep="release"`, `git log --author="Ada"` | bridge |
-| 02.03.10 | pickaxe-history | `git log -SfeatureFlag` | investigation, bisect |
-| 02.03.11 | tag-decorated-history | `git log --decorate`, `git log v1.0..HEAD` | git-tag |
-| 02.03.12 | history-query-composition | `git log v1.0..HEAD --graph --oneline --author="Ada" --grep="release" -- app/config.txt` | capstone |
+| 02.03.00 | linear-history | `git log` | provenance witnesses |
+| 02.03.01 | compact-history | `git log --oneline`, `git log --oneline -3` | bounded projection |
+| 02.03.02 | limit-history | `git log -2`, `git log --since="2024-01-03"` | count/date constraints |
+| 02.03.03 | patch-history | `git log -p`, `git show` | patch-derived witnesses |
+| 02.03.04 | stat-history | `git log --stat`, `git log --shortstat` | summary projection |
+| 02.03.05 | name-status-history | `git log --name-only`, `git log --name-status` | path-status projection |
+| 02.03.06 | path-limited-history | `git log -- app/config.txt` | pathscope gate |
+| 02.03.07 | graph-history | `git log --graph --oneline --decorate --all` | topology witnesses |
+| 02.03.08 | merge-filter-history | `git log --merges`, `git log --no-merges` | merge classification |
+| 02.03.09 | message-author-date-filter | `git log --grep="release"`, `git log --author="Ada"` | metadata constraints |
+| 02.03.10 | pickaxe-history | `git log -SfeatureFlag` | semantic symbol witnesses |
+| 02.03.11 | tag-decorated-history | `git log --decorate`, `git log v1.0..HEAD` | ref boundary gate |
+| 02.03.12 | history-query-composition | `git log v1.0..HEAD --graph --oneline --author="Ada" --grep="release" -- app/config.txt` | composed gates |
 
 ## Fixture Strategy
 
@@ -44,7 +69,7 @@ Use a small number of reusable fixtures:
 
 ## Verification Style
 
-Prefer answer files. The exact output paths live in `kata.cue`; examples include:
+Each kata verifies answer evidence and CUE closure. The exact output paths and witness names live in `kata.cue`; examples include:
 
 ```text
 .answers/
