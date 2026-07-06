@@ -1,27 +1,24 @@
-# 02.03.00 — 00-linear-history
+# 02.03.00 — Linear History
 
-## Objective
+This directory is a vertical SCM-analysis slice. It keeps the Pro Git kata location, but separates the learning task from the theory, lattice expression, and CUE workflow that can resolve the same repository-analysis problem outside the kata.
 
-Identify newest/oldest commit and metadata.
+## Plane layout
 
-## Primary command family
+| Plane | Path | Purpose |
+|---|---|---|
+| Theory | `theory/` | SCM and Git theory for linear history provenance. |
+| Lattice | `lattice/` | Lattice expression of the analysis as refinements, witnesses, and bottom cases. |
+| Micro | `micro/` | Learner-facing micro-kata task and answer schema. |
+| CUE | `cue/` | Constructor-backed workflow plan, evidence shape, and report projection. |
 
-```bash
-git log
-```
+## Analysis question
 
-## Contract
+Given a repository fixture and `HEAD`, identify the newest and oldest reachable commits, then extract the newest commit author and subject.
 
-```text
-Given: prepared repository fixture
-When: learner queries history
-Then: learner extracts the requested invariant
-```
+## Tooling intent
 
-## Files
+The kata trains `scm.history.linear-provenance`, but the CUE workflow is not a kata controller. It is a reusable Git analysis workflow that collects repository facts, shapes evidence, validates witnesses, and reports whether the provenance read is sufficient for downstream SCM work.
 
-- `task.md` — learner-facing task
-- `hints.md` — progressive hints
-- `verify.md` — intended verification checks
-- `fixture-notes.md` — fixture shape and required properties
-- `kata.cue` — machine-readable kata contract
+## Downstream SCM use
+
+A closed linear-history provenance read is a safe precondition for later mutation workflows such as amend, revert, reset, rebase, cherry-pick, release audit, and agent-driven repository edits.
