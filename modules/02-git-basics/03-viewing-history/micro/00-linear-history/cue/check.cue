@@ -1,7 +1,15 @@
 package cuetool
 
 check: {
-	constructor: "contracts/constructors.cue"
-	closed: plan.closed
-	items: ["read refs", "write refs", "create refs", "gates", "witnesses"]
+	closedState: cueTheory.closedState
+	patterns: [for _, pattern in cueTheory.patterns {pattern.id}]
+	bottomCases: [for id, _ in cueTheory.bottomCases {id}]
+	guards: {
+		workflowUsesLocalSchema: workflow.analysis.concept != ""
+		adapterContractProjectsValidation: {
+			facts:     workflow.adapterContract.facts
+			witnesses: workflow.adapterContract.witnesses
+			checks:    workflow.adapterContract.checks
+		}
+	}
 }

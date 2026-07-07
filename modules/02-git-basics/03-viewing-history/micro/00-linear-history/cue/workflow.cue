@@ -1,13 +1,11 @@
 package cuetool
 
-import schema "example.com/git-katas-progit/schema:schema"
-
-workflow: schema.#CueGitAnalysisWorkflow & {
+workflow: #CueGitAnalysisWorkflow & {
 	id: "cue.git.history.linear-provenance"
 
 	analysis: {
-		theoryRef: "scm.history.linear-provenance"
-		latticeRef: "lattice.history.linear-provenance"
+		concept: "scm.history.linear-provenance"
+		lattice: "lattice.history.linear-provenance"
 	}
 
 	parameters: {
@@ -17,12 +15,12 @@ workflow: schema.#CueGitAnalysisWorkflow & {
 
 	input: {
 		repoPath: "."
-		ref: "HEAD"
+		ref:      "HEAD"
 	}
 
 	collectors: [
 		{
-			id: "resolve-head"
+			id:      "resolve-head"
 			adapter: "git"
 			command: {
 				executable: "git"
@@ -36,24 +34,21 @@ workflow: schema.#CueGitAnalysisWorkflow & {
 			]
 		},
 		{
-			id: "collect-linear-history"
-			adapter: "git"
+			id:      "read-linear-history-payload"
+			adapter: "process"
 			command: {
-				executable: "git"
-				args: ["log", "--format=%H%x09%P%x09%an <%ae>%x09%s", "{ref}"]
+				executable: "git-history-json"
+				args: ["--repo", "{repoPath}", "--ref", "{ref}"]
 			}
 			parsers: [
-				{id: "linear-history-tsv", kind: "tsv", description: "Parse commit, parent list, author identity, and subject fields from git log output.", fields: ["commit", "parents", "author", "subject"]},
+				{id: "closed-linear-history-json", kind: "json", description: "Parse a ClosedLinearHistory payload shaped by the Git object ontology."},
 			]
 			outputs: [
-				{id: "reachable-commit-list", parser: "linear-history-tsv", fact: "reachable-commit-list"},
-				{id: "commit-parent-map", parser: "linear-history-tsv", fact: "commit-parent-map"},
-				{id: "commit-author-map", parser: "linear-history-tsv", fact: "commit-author-map"},
-				{id: "commit-subject-map", parser: "linear-history-tsv", fact: "commit-subject-map"},
+				{id: "linear-history", parser: "closed-linear-history-json", fact: "linear-history"},
 			]
 		},
 		{
-			id: "check-read-only-state"
+			id:      "check-read-only-state"
 			adapter: "git"
 			command: {
 				executable: "git"
@@ -68,14 +63,12 @@ workflow: schema.#CueGitAnalysisWorkflow & {
 		},
 	]
 
-	evidence: evidence
+	evidence: #linearHistoryEvidence
 	validate: {
 		requiredFacts: [
 			"head-ref",
-			"reachable-commit-list",
-			"commit-parent-map",
-			"commit-author-map",
-			"commit-subject-map",
+			"linear-history",
+			"worktree-status",
 		]
 
 		requiredWitnesses: [
@@ -99,10 +92,10 @@ workflow: schema.#CueGitAnalysisWorkflow & {
 		refinements: [
 			{id: "repository-exists", description: "The adapter can execute read-only Git commands in the target repository.", requiresFacts: ["worktree-status"], bottomCases: ["head-ref-unresolved"], promotesTo: "repository exists"}
 			{id: "head-resolves", description: "The selected ref resolves to one commit object.", requiresFacts: ["head-ref"], bottomCases: ["head-ref-unresolved"], promotesTo: "head ref resolves"}
-			{id: "reachable-history-observed", description: "The selected ref has a non-empty reachable commit list.", requiresFacts: ["reachable-commit-list"], bottomCases: ["empty-selected-history"], promotesTo: "reachable commit set observed"}
-			{id: "parent-map-observed", description: "The history parser emits parent information for each selected commit.", requiresFacts: ["commit-parent-map"], promotesTo: "parent map observed"}
-			{id: "history-is-linear", description: "The selected commit set forms a single-parent chain.", requiresFacts: ["reachable-commit-list", "commit-parent-map"], requiresWitnesses: ["linearity"], bottomCases: ["linearity-violation"], promotesTo: "history is linear"}
-			{id: "commit-metadata-observed", description: "The history parser emits author and subject metadata for selected commits.", requiresFacts: ["commit-author-map", "commit-subject-map"], bottomCases: ["metadata-unavailable"], promotesTo: "commit metadata observed"}
+			{id: "reachable-history-observed", description: "The selected ref has a non-empty ClosedLinearHistory commit list.", requiresFacts: ["linear-history"], bottomCases: ["empty-selected-history"], promotesTo: "reachable commit set observed"}
+			{id: "object-ontology-unified", description: "Every observed commit unifies with the Git commit object constraint.", requiresFacts: ["linear-history"], bottomCases: ["metadata-unavailable"], promotesTo: "commit object ontology observed"}
+			{id: "history-is-linear", description: "The selected commit set forms a single-parent chain under #LinearHistorySet.", requiresFacts: ["linear-history"], requiresWitnesses: ["linearity"], bottomCases: ["linearity-violation"], promotesTo: "history is linear"}
+			{id: "commit-metadata-observed", description: "Newest commit author and subject are projected from #Commit metadata.", requiresFacts: ["linear-history"], bottomCases: ["metadata-unavailable"], promotesTo: "commit metadata observed"}
 			{id: "boundary-commits-identified", description: "Newest and oldest commits are derived from the observed history boundary.", requiresWitnesses: ["newest-commit", "oldest-commit"], bottomCases: ["evidence-divergence"], promotesTo: "boundary commits identified"}
 			{id: "provenance-witnesses-extracted", description: "Newest commit provenance witnesses are derived from metadata maps.", requiresWitnesses: ["newest-author", "newest-subject"], bottomCases: ["evidence-divergence"], promotesTo: "required witnesses extracted"}
 		]
@@ -116,11 +109,11 @@ workflow: schema.#CueGitAnalysisWorkflow & {
 		]
 		successState: "closed linear-history provenance evidence"
 	}
-	report: report
+	report: #linearHistoryReport
 	adapterContract: {
 		parameters: ["repoPath", "ref"]
-		facts: validate.requiredFacts
+		facts:     validate.requiredFacts
 		witnesses: validate.requiredWitnesses
-		checks: validate.checks
+		checks:    validate.checks
 	}
 }
