@@ -1,46 +1,88 @@
 # Linear History — Deliverables
 
-Deliverables stem from the kernel obligation state in `contract.cue`. They are not a separate metadata plane.
+## Learning-to-implementation target
 
-## Workflow deliverables
+The deliverables are the implementation consequences of the theory and lattice model. They should answer: what must a workflow, adapter, or CUE tool implement so the linear-history theory is usable?
 
-- Inspect the selected ref and reachable history before history-sensitive mutation.
-- Confirm the selected history is linear when strict linearity is a workflow precondition.
-- Preserve the distinction between immutable commit objects and mutable refs.
-- Treat rendered history as a projection, not the authority.
+## Workflow deliverable
 
-## Adapter deliverables
+A linear-history workflow must:
 
-Adapters may be implemented over:
+1. select a ref, defaulting to `HEAD`;
+2. resolve it to an object id;
+3. enumerate the selected reachable commits;
+4. read parent ids from commit objects;
+5. reject merge topology when strict linear history is required;
+6. derive newest and oldest selected commits;
+7. derive newest author and subject from the newest commit;
+8. report only facts that trace to observed object/ref state.
 
-- Git CLI commands such as `git rev-parse`, `git log`, `git cat-file`, and `git rev-list`;
-- go-git traversal and object APIs;
-- gitoxide/gix traversal and object APIs.
+This workflow is read-only. It prepares history-sensitive mutation, but it does not mutate refs, commits, index, or worktree state.
 
-Adapter outputs are admissible only when they support a kernel witness or gate. The adapter does not own the ontology.
+## Git CLI adapter deliverable
 
-## CUE tool deliverables
+Minimum command surface:
 
-- Export the closed module state.
-- Validate that all operation references point to declared resources, gates, and witnesses.
-- Prove that derived projections do not widen beyond the admitted kernel surface when a target projection is introduced.
+```bash
+git rev-parse HEAD
+git rev-list --parents HEAD
+git cat-file -p <commit>
+git log -1 --format=%H%x00%an%x00%ae%x00%s HEAD
+```
 
-## Contract trace
+The adapter must normalize command output into the theory payload:
 
-| Deliverable | Kernel concept |
-|---|---|
-| theory note | `Resource` |
-| lattice projection | `Operation` writing `Resource` |
-| CUE projection | `Operation` writing `Resource` |
-| workflow/adapters/tools | `Operation` writing `Resource` |
-| semantic preservation | `Gate` |
-| linear-history invariants | `Witness` |
-| closed validation | `ClosedObligationState` |
+```text
+head object id
+ordered selected commits
+parent relation
+newest commit metadata
+```
+
+## go-git adapter deliverable
+
+The go-git lens should implement:
+
+- repository open;
+- HEAD resolution;
+- commit object lookup;
+- parent traversal;
+- metadata projection;
+- error states for unresolved refs, empty history, merge topology, and missing metadata.
+
+The implementation target is not a full porcelain replacement. It is an object/ref observation adapter for the linear-history contract.
+
+## gitoxide/gix adapter deliverable
+
+The gitoxide/gix lens should implement the same observation contract through Rust APIs:
+
+- repository discovery/open;
+- ref resolution;
+- object database commit decode;
+- revision walk or explicit parent traversal;
+- metadata projection;
+- typed errors that map to bottom cases.
+
+## CUE tool deliverable
+
+The CUE tool surface must expose:
+
+```bash
+cue export ./modules/02-git-basics/03-viewing-history/micro/00-linear-history -e closedLinearHistory
+```
+
+Future validation can add fixture payloads that intentionally bottom:
+
+- unresolved ref;
+- empty history;
+- merge commit in strict linear scope;
+- missing newest metadata;
+- newest witness diverges from selected ref.
 
 ## Excluded
 
-- learner-task boilerplate;
-- answer-file ceremony;
-- fixture-first kata controller shape;
-- repeated local workflow metadata;
-- local schema hierarchy that duplicates the lattice meta kernel.
+- learner answer files;
+- fixture-first kata ceremony;
+- report-only facts;
+- local schema hierarchy that duplicates `fatb4f/lattice/meta`;
+- adapter payloads that cannot be mapped to resources, operations, gates, or witnesses.
