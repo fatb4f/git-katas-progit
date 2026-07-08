@@ -1,25 +1,21 @@
-# Linear History — Deliverables
+# Linear History — Kernel Tooling Deliverables
 
 ## Learning-to-implementation target
 
-The deliverables are the implementation consequences of the theory and lattice model. They should answer: what must a workflow, adapter, or CUE tool implement so the linear-history theory is usable?
+The deliverables are not just adapter commands. They are the implementation consequences of the theory, lattice model, and idiomatic CUE kernel.
 
-## Workflow deliverable
+The target is trustworthy CUE tooling with evidence:
 
-A linear-history workflow must:
-
-1. select a ref, defaulting to `HEAD`;
-2. resolve it to an object id;
-3. enumerate the selected reachable commits;
-4. read parent ids from commit objects;
-5. reject merge topology when strict linear history is required;
-6. derive newest and oldest selected commits;
-7. derive newest author and subject from the newest commit;
-8. report only facts that trace to observed object/ref state.
-
-This workflow is read-only. It prepares history-sensitive mutation, but it does not mutate refs, commits, index, or worktree state.
+```text
+adapter observes Git
+  -> CUE constraints classify the observation
+    -> kernel obligation state records admitted resources, operations, gates, and witnesses
+      -> reports or generated outputs are admitted only through no-widening proof
+```
 
 ## Git CLI adapter deliverable
+
+The Git CLI adapter is a read-only observer. It does not own the theory, the lattice, or the evidence contract.
 
 Minimum command surface:
 
@@ -30,59 +26,90 @@ git cat-file -p <commit>
 git log -1 --format=%H%x00%an%x00%ae%x00%s HEAD
 ```
 
-The adapter must normalize command output into the theory payload:
+Theory behind the commands:
+
+| Command | Theory role |
+|---|---|
+| `git rev-parse HEAD` | resolve selected ref into object identity |
+| `git rev-list --parents HEAD` | enumerate selected reachable commits and parent relation |
+| `git cat-file -p <commit>` | inspect commit object authority directly |
+| `git log -1 --format=... HEAD` | project newest commit metadata from selected history |
+
+The adapter should emit observations that can become evidence:
 
 ```text
 head object id
 ordered selected commits
 parent relation
 newest commit metadata
+adapter command provenance
+exit status / error class
 ```
 
-## go-git adapter deliverable
+## CUE constraint deliverable
 
-The go-git lens should implement:
+The CUE layer receives the adapter observation and classifies it:
 
-- repository open;
-- HEAD resolution;
-- commit object lookup;
-- parent traversal;
-- metadata projection;
-- error states for unresolved refs, empty history, merge topology, and missing metadata.
+- ref resolves or bottoms;
+- selected history is non-empty or bottoms;
+- newest commit equals selected ref target or bottoms;
+- parent relation is strict-linear or bottoms;
+- newest metadata is present or bottoms;
+- derived witnesses are computed from observed state, not invented by a report.
 
-The implementation target is not a full porcelain replacement. It is an object/ref observation adapter for the linear-history contract.
+## Kernel evidence deliverable
 
-## gitoxide/gix adapter deliverable
+The kernel layer supplies the trustworthy tooling surface:
 
-The gitoxide/gix lens should implement the same observation contract through Rust APIs:
+- resources/artifacts declare authority, input, evidence, and generated outputs;
+- operations/actions declare allowed reads, writes, creates, checks, and evidence requirements;
+- gates/checks encode predicates that must hold;
+- witnesses/evidence declare what proof material must exist;
+- closed-state constructors inject ids and prove references;
+- no-widening proofs prevent generated reports from adding unadmitted surfaces.
 
-- repository discovery/open;
-- ref resolution;
-- object database commit decode;
-- revision walk or explicit parent traversal;
-- metadata projection;
-- typed errors that map to bottom cases.
+This is the important deliverable: the Git adapter is merely one evidence collector for a kernel-shaped CUE tool.
 
-## CUE tool deliverable
+## cue cmd runner deliverable
 
-The CUE tool surface must expose:
+`cue cmd` is optional orchestration. It can run the adapter and feed the result into CUE validation, but the kernel and constraints remain the semantic authority.
 
-```bash
-cue export ./modules/02-git-basics/03-viewing-history/micro/00-linear-history -e closedLinearHistory
+Good runner shape:
+
+```text
+cue cmd observe-linear-history
+  -> exec Git CLI adapter
+  -> capture JSON observation
+  -> unify observation with CUE constraints
+  -> export closed evidence state or bottom
 ```
 
-Future validation can add fixture payloads that intentionally bottom:
+Bad runner shape:
 
-- unresolved ref;
-- empty history;
-- merge commit in strict linear scope;
-- missing newest metadata;
-- newest witness diverges from selected ref.
+```text
+cue cmd contains the Git theory
+cue cmd owns the adapter semantics
+cue cmd replaces evidence declarations
+```
+
+## go-git and gitoxide/gix deliverables
+
+Go and Rust adapters should satisfy the same evidence contract as the Git CLI adapter:
+
+- resolve selected ref;
+- enumerate selected commits;
+- read parent ids;
+- project newest author and subject;
+- classify unresolved ref, empty history, nonlinear history, and missing metadata;
+- emit data that unifies with the CUE constraints.
+
+The implementation target is adapter interchangeability under one kernel evidence model.
 
 ## Excluded
 
 - learner answer files;
 - fixture-first kata ceremony;
 - report-only facts;
+- adapter-specific ontology;
 - local schema hierarchy that duplicates `fatb4f/lattice/meta`;
-- adapter payloads that cannot be mapped to resources, operations, gates, or witnesses.
+- `cue cmd` as the semantic core.
