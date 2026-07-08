@@ -1,38 +1,77 @@
-# Linear History — CUE Projection
+# Linear History — CUE Lattice Theory
 
-`contract.cue` is the machine surface for this module. It imports `fatb4f/lattice/meta` and expresses the module as one kernel-shaped obligation state.
+## Learning target
 
-## Projection rule
+Encode the lattice theory in CUE concepts without reintroducing a module-local ontology. CUE is the constraint language used to express refinement, meet, bottom, closure, and projection.
 
-Do not encode a local module schema such as `#GitTheoryModule`, `#LinearHistoryWorkflow`, or `#CueLatticeTheory` here. The kernel is the ontology.
+## Lattice concept to CUE concept
 
-The CUE projection should use:
+| Lattice theory | CUE expression |
+|---|---|
+| carrier | a value space constrained by definitions |
+| refinement order | unification with additional constraints |
+| meet | `A & B` |
+| bottom | failed unification / incomplete impossible value |
+| top | unconstrained or weakly constrained value |
+| sublattice | definition refined by additional constraints |
+| monotone projection | derived field or operation that only depends on admitted inputs |
+| closure | constructor output that injects ids and proves references |
 
-- `lat.#ObligationState` for the module surface;
-- `lat.#MakeClosedObligationState` to close map-keyed ids;
-- `lat.#NoWideningProof` when a target projection must prove it did not widen beyond authority;
-- `Resource`, `Operation`, `Gate`, and `Witness` roles through the kernel fields, not separate local metadata records.
+## Git theory to CUE concepts
 
-## Maintained resources versus generated resources
+The theory should eventually be encoded as constraints like these, either directly in this module or through reusable lattice patterns:
 
-The five files in this folder are maintained resources, so operations use `writes` for them.
+```cue
+#ObjectID: string & =~"^[0-9a-f]{40}$"
 
-Use `creates` only for generated outputs. The meta kernel requires created resources to carry the generated-output role, so hand-maintained theory or projection files must not be declared as created resources.
+#Commit: {
+	hash:    #ObjectID
+	parents: [...#ObjectID]
+	author:  string & != ""
+	message: string
+}
 
-## CUE tool surface
+#SelectedHistory: {
+	head:    #ObjectID
+	commits: [...#Commit] & [_, ...]
+	newest: commits[0].hash
+	_newestIsHead: newest == head
+}
 
-The minimal validation surface is:
-
-```bash
-cue export ./modules/02-git-basics/03-viewing-history/micro/00-linear-history -e closedLinearHistory
+#LinearSelectedHistory: #SelectedHistory & {
+	_linearity: [for commit in commits {true & (len(commit.parents) <= 1)}]
+}
 ```
 
-Optional proof export:
+Those definitions are not the module ontology. They are the theory payload that an adapter or pattern can emit into the kernel contract.
 
-```bash
-cue export ./modules/02-git-basics/03-viewing-history/micro/00-linear-history -e linearHistorySelfNoWidening
+## CUE bottom cases
+
+The important CUE lesson is not a report schema. It is the way invalid Git states become bottom:
+
+```cue
+// unresolved ref: head never becomes #ObjectID
+head: _|_
+
+// empty selected history: conflicts with [_, ...]
+commits: []
+
+// nonlinear selected history: conflicts with len(parents) <= 1
+parents: [p1, p2]
 ```
 
-## Adapter boundary
+## Kernel encoding
 
-Git CLI, go-git, or gitoxide/gix adapters may observe the repository, but their outputs must enter this module as evidence for kernel witnesses or gates. Adapter-specific payload shapes belong behind an adapter boundary, not in a repeated module ontology.
+The kernel contract does not need a `#GitTheoryModule` or `#CueLatticeTheory` schema. It needs resources that name what must be learned and implemented, operations that move from learning to implementation, gates that constrain those operations, and witnesses that prove the learned theory has been preserved.
+
+In `contract.cue`, the CUE projection should therefore express:
+
+- learning resources for Git theory and lattice theory;
+- implementation resources for CUE constraints, adapter observations, and validation surface;
+- operations from theory to CUE constraint implementation;
+- gates for linearity, non-empty history, ref resolution, and metadata projection;
+- witnesses proving newest, oldest, author, subject, and linearity are derived rather than invented.
+
+## Deliverable boundary
+
+Workflow and adapter deliverables should consume this CUE lattice theory. They should not define a separate fact/witness/check ontology unless that ontology is admitted as a reusable lattice pattern.
