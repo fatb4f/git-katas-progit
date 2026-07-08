@@ -1,39 +1,61 @@
-# Linear History — CUE Lattice Theory
+# Linear History — CUE Kernel Tooling Theory
 
 ## Learning target
 
-Encode the lattice theory in CUE concepts without reintroducing a module-local ontology. CUE is the constraint language used to express refinement, meet, bottom, closure, and projection.
+Learn how an idiomatic CUE kernel provides the building blocks for trustworthy tooling with evidence.
+
+The point is not: Git CLI adapter -> logic core -> CUE bridge -> metadata contract.
+
+The point is:
+
+```text
+Git theory
+  -> CUE lattice constraints
+    -> kernel-shaped evidence tooling
+      -> optional cue cmd runner
+```
+
+The adapter observes Git. The CUE kernel gives the trustworthy shape for what the tool is allowed to claim, what evidence it must provide, what checks must hold, and what generated projections may be admitted.
 
 ## Lattice concept to CUE concept
 
 | Lattice theory | CUE expression |
 |---|---|
-| carrier | a value space constrained by definitions |
+| carrier | constrained value space |
 | refinement order | unification with additional constraints |
 | meet | `A & B` |
-| bottom | failed unification / incomplete impossible value |
-| top | unconstrained or weakly constrained value |
+| bottom | failed unification |
+| top | weakly constrained value |
 | sublattice | definition refined by additional constraints |
-| monotone projection | derived field or operation that only depends on admitted inputs |
-| closure | constructor output that injects ids and proves references |
+| monotone projection | derived value that depends only on admitted inputs |
+| closure | kernel constructor output with references resolved |
+| evidence | declared witness resource consumed by an operation |
+| trust boundary | no-widening proof between authority and target |
 
-## Git theory to CUE concepts
+## Git theory to CUE constraints
 
-The theory should eventually be encoded as constraints like these, either directly in this module or through reusable lattice patterns:
+The Git theory payload can be represented with reusable constraints:
 
 ```cue
 #ObjectID: string & =~"^[0-9a-f]{40}$"
 
+#Author: {
+	name:  string & != ""
+	email: string & != ""
+}
+
 #Commit: {
 	hash:    #ObjectID
 	parents: [...#ObjectID]
-	author:  string & != ""
-	message: string
+	author:  #Author
+	subject: string
 }
 
 #SelectedHistory: {
+	ref:     string
 	head:    #ObjectID
 	commits: [...#Commit] & [_, ...]
+
 	newest: commits[0].hash
 	_newestIsHead: newest == head
 }
@@ -43,11 +65,37 @@ The theory should eventually be encoded as constraints like these, either direct
 }
 ```
 
-Those definitions are not the module ontology. They are the theory payload that an adapter or pattern can emit into the kernel contract.
+These constraints are not a separate module ontology. They are the domain payload the tool must validate before it can claim evidence.
 
-## CUE bottom cases
+## Kernel tooling model
 
-The important CUE lesson is not a report schema. It is the way invalid Git states become bottom:
+The kernel supplies the reusable tooling discipline:
+
+```text
+resources/artifacts
+  named authority, input, evidence, mutation target, or generated output surfaces
+
+operations/actions
+  inspect, validate, generate, collect evidence, report, or adapt surfaces
+
+gates/checks
+  predicates that must hold before a claim is admitted
+
+witnesses/evidence
+  declared proof material required by operations
+
+closed state
+  map-keyed declarations with ids injected and references proven
+
+no-widening proof
+  target projection cannot introduce undeclared surfaces or references
+```
+
+That is the core design. Git adapter output becomes trustworthy only after it is represented as evidence and validated against CUE lattice constraints.
+
+## Bottom cases as CUE theory
+
+Invalid Git observations should fail as constraints, not as prose-only report warnings:
 
 ```cue
 // unresolved ref: head never becomes #ObjectID
@@ -60,18 +108,26 @@ commits: []
 parents: [p1, p2]
 ```
 
-## Kernel encoding
+## cue cmd boundary
 
-The kernel contract does not need a `#GitTheoryModule` or `#CueLatticeTheory` schema. It needs resources that name what must be learned and implemented, operations that move from learning to implementation, gates that constrain those operations, and witnesses that prove the learned theory has been preserved.
+`cue cmd` may run the workflow, but it is not the semantic center.
 
-In `contract.cue`, the CUE projection should therefore express:
+Use it as:
 
-- learning resources for Git theory and lattice theory;
-- implementation resources for CUE constraints, adapter observations, and validation surface;
-- operations from theory to CUE constraint implementation;
-- gates for linearity, non-empty history, ref resolution, and metadata projection;
-- witnesses proving newest, oldest, author, subject, and linearity are derived rather than invented.
+```text
+cue cmd observe
+  -> call adapter
+  -> capture JSON
+  -> unify with CUE constraints
+  -> emit evidence or bottom
+```
 
-## Deliverable boundary
+Do not use it as:
 
-Workflow and adapter deliverables should consume this CUE lattice theory. They should not define a separate fact/witness/check ontology unless that ontology is admitted as a reusable lattice pattern.
+```text
+cue cmd owns Git theory
+cue cmd owns adapter semantics
+cue cmd replaces the kernel evidence model
+```
+
+The kernel and constraints must remain useful without the runner: from tests, `just`, CI, Go adapters, Rust adapters, or MCP/tool wrappers.
