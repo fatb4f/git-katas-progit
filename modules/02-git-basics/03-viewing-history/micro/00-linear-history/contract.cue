@@ -6,48 +6,51 @@ linearHistory: lat.#ObligationState & {
 	id: "linear-history"
 
 	resources: {
-		"learn-git-theory": {
+		"git-theory": {
 			path:       "theory.md#learning-target"
-			role:       "learn"
+			role:       "authority"
 			visibility: "public"
 		}
-		"learn-lattice-theory": {
+		"lattice-theory": {
 			path:       "lattice.md#learning-target"
-			role:       "learn"
+			role:       "authority"
 			visibility: "public"
 		}
-		"learn-cue-lattice-theory": {
+		"cue-kernel-theory": {
 			path:       "cue-projection.md#learning-target"
-			role:       "learn"
+			role:       "authority"
 			visibility: "public"
 		}
-		"implement-cue-constraints": {
-			path:       "cue-projection.md#git-theory-to-cue-concepts"
-			role:       "implement"
+		"git-cli-observer": {
+			path:       "deliverables.md#git-cli-adapter-deliverable"
+			role:       "input"
 			visibility: "public"
 		}
-		"implement-adapters": {
-			path:       "deliverables.md#adapter-deliverables"
-			role:       "implement"
+		"cue-constraints": {
+			path:       "cue-projection.md#git-theory-to-cue-constraints"
+			role:       "authority"
 			visibility: "public"
 		}
-		"implement-validation": {
-			path:       "deliverables.md#cue-tool-deliverable"
-			role:       "implement"
+		"kernel-evidence-tooling": {
+			path:       "deliverables.md#kernel-evidence-deliverable"
+			role:       "authority"
+			visibility: "public"
+		}
+		"cue-cmd-runner": {
+			path:       "deliverables.md#cue-cmd-runner-deliverable"
+			role:       "generated-output"
 			visibility: "public"
 		}
 	}
 
 	operations: {
-		"understand-linear-history": {
-			kind:        "learn"
-			description: "Learn linear history as a selected commit path over immutable commit objects and mutable refs."
+		"learn-linear-history-theory": {
+			kind:        "inspect"
+			description: "Learn selected linear history as immutable commit objects, mutable refs, reachability, parent relation, and metadata projection."
 			reads: {
-				"learn-git-theory": true
+				"git-theory": true
 			}
-			writes: {
-				"learn-lattice-theory": true
-			}
+			writes: {}
 			creates: {}
 			requiresGates: {
 				"git-theory-preserved": true
@@ -58,15 +61,16 @@ linearHistory: lat.#ObligationState & {
 			}
 		}
 
-		"encode-as-cue-lattice": {
-			kind:        "implement"
-			description: "Encode selected-ref resolution, non-empty history, parent-cardinality, boundary, and metadata projection as CUE constraints."
+		"encode-cue-lattice-constraints": {
+			kind:        "validate"
+			description: "Encode the lattice model as CUE constraints whose failed unifications represent bottom cases."
 			reads: {
-				"learn-lattice-theory": true
-				"learn-cue-lattice-theory": true
+				"git-theory": true
+				"lattice-theory": true
+				"cue-kernel-theory": true
 			}
 			writes: {
-				"implement-cue-constraints": true
+				"cue-constraints": true
 			}
 			creates: {}
 			requiresGates: {
@@ -80,14 +84,15 @@ linearHistory: lat.#ObligationState & {
 			}
 		}
 
-		"implement-observation-adapters": {
-			kind:        "implement"
-			description: "Implement Git CLI, go-git, or gitoxide/gix observation adapters that emit data supporting the CUE lattice constraints."
+		"collect-git-cli-evidence": {
+			kind:        "collect-evidence"
+			description: "Run a read-only Git CLI observer and emit observations that can become kernel evidence."
 			reads: {
-				"implement-cue-constraints": true
+				"git-cli-observer": true
+				"cue-constraints": true
 			}
 			writes: {
-				"implement-adapters": true
+				"kernel-evidence-tooling": true
 			}
 			creates: {}
 			requiresGates: {
@@ -101,16 +106,14 @@ linearHistory: lat.#ObligationState & {
 			}
 		}
 
-		"validate-closed-understanding": {
+		"close-evidence-tooling": {
 			kind:        "validate"
-			description: "Validate that learned theory, CUE constraints, and adapter observations close the linear-history understanding."
+			description: "Close the trusted CUE tooling surface by requiring evidence, checks, and no-widening before report or generated output admission."
 			reads: {
-				"implement-cue-constraints": true
-				"implement-adapters": true
+				"cue-constraints": true
+				"kernel-evidence-tooling": true
 			}
-			writes: {
-				"implement-validation": true
-			}
+			writes: {}
 			creates: {}
 			requiresGates: {
 				"closed-kernel-shape": true
@@ -122,29 +125,52 @@ linearHistory: lat.#ObligationState & {
 				"strict-linear-history": true
 			}
 		}
+
+		"generate-optional-cue-cmd-runner": {
+			kind:        "generate"
+			description: "Optionally generate a cue cmd workflow runner that invokes the observer and feeds CUE validation without owning the semantic core."
+			reads: {
+				"git-cli-observer": true
+				"cue-constraints": true
+				"kernel-evidence-tooling": true
+			}
+			writes: {}
+			creates: {
+				"cue-cmd-runner": true
+			}
+			requiresGates: {
+				"cue-cmd-is-runner-only": true
+			}
+			requiresWitnesses: {
+				"runner-feeds-validation": true
+			}
+		}
 	}
 
 	gates: {
 		"git-theory-preserved": {
-			description: "The lattice expression preserves immutable commit objects, mutable refs, selected reachability, parent relation, and metadata projection."
+			description: "The lattice and CUE constraints preserve immutable commit objects, mutable refs, selected reachability, parent relation, and metadata projection."
 		}
 		"cue-bottom-cases-modeled": {
-			description: "Unresolved ref, empty history, nonlinear selected parent relation, missing metadata, and witness divergence are representable as bottom cases."
+			description: "Unresolved ref, empty history, nonlinear selected parent relation, missing metadata, and witness divergence are represented as CUE bottom cases."
 		}
 		"no-local-ontology": {
-			description: "The module does not define a parallel theory/workflow metadata schema after crossing into lattice/CUE."
+			description: "The module does not define a separate workflow metadata ontology after crossing into CUE lattice theory."
 		}
 		"read-only-observation": {
-			description: "Adapters observe refs, objects, parents, and metadata without mutating refs, index, worktree, or object database."
+			description: "The Git CLI observer collects refs, objects, parents, and metadata without mutating refs, index, worktree, or object database."
 		}
 		"adapter-does-not-own-ontology": {
-			description: "Adapter payloads support the CUE lattice constraints but do not become the ontology."
+			description: "Adapter payloads are evidence inputs for CUE constraints and kernel tooling; they do not become the ontology."
 		}
 		"closed-kernel-shape": {
-			description: "The learning and implementation surface closes as a lat.#ClosedObligationState."
+			description: "The trustworthy tooling surface closes through the lattice meta kernel."
 		}
 		"no-widening": {
-			description: "Validation and deliverables do not add requirements beyond the learned theory and implementation resources admitted here."
+			description: "Generated outputs and reports cannot introduce undeclared resources, operations, gates, or witnesses."
+		}
+		"cue-cmd-is-runner-only": {
+			description: "cue cmd may orchestrate adapter execution and validation, but it does not own Git theory, adapter semantics, or evidence declarations."
 		}
 	}
 
@@ -165,13 +191,13 @@ linearHistory: lat.#ObligationState & {
 			description: "Newest author and subject are projected from the newest commit object."
 		}
 		"adapter-observes-refs": {
-			description: "The implementation can resolve the selected ref to an object id."
+			description: "The observer resolves the selected ref to an object id."
 		}
 		"adapter-observes-parents": {
-			description: "The implementation can read parent ids for selected commits."
+			description: "The observer reads parent ids for selected commits."
 		}
 		"adapter-observes-metadata": {
-			description: "The implementation can read author and subject metadata from commit objects."
+			description: "The observer reads author and subject metadata from commit objects."
 		}
 		"newest-is-head": {
 			description: "The newest selected commit equals the resolved selected ref target."
@@ -181,6 +207,9 @@ linearHistory: lat.#ObligationState & {
 		}
 		"strict-linear-history": {
 			description: "The selected history contains no selected merge topology when strict linearity is required."
+		}
+		"runner-feeds-validation": {
+			description: "The optional runner feeds observer output into CUE validation and does not bypass kernel evidence checks."
 		}
 	}
 }
